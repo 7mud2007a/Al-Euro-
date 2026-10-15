@@ -31,7 +31,7 @@ class ProductDetailsScreen extends StatelessWidget {
                 part.imageUrls.first,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const Center(
-                  child: Icon(Icons.Build_circle_outlined, size: 70, color: AlEuroColors.warmGray),
+                  child: Icon(Icons.build_circle_outlined, size: 70, color: AlEuroColors.warmGray),
                 ),
               ),
             ),
