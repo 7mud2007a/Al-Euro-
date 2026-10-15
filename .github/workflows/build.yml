@@ -1,59 +1,56 @@
+name: Build Al Euro APK
+
 on:
-push:
-branches: [ main, master ]
-pull_request:
-branches: [ main, master ]
-workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
 jobs:
-build-apk:
-name: Build Release APK (اليورو)
-runs-on: ubuntu-latest
-steps:
-# 1. سحب الملفات التي رفعتها في المستودع
-- name: Checkout Repository Code
-uses: actions/checkout@v4
-# 2. تثبيت بيئة Java 17 المطلوبة لبناء تطبيقات أندرويد
-- name: Setup Java JDK 17
-uses: actions/setup-java@v4
-with:
-distribution: 'temurin'
-java-version: '17'
-# 3. تثبيت بيئة Flutter تلقائياً على سيرفر GitHub
-- name: Setup Flutter SDK
-uses: subosito/flutter-action@v2
-with:
-channel: 'stable'
-cache: true
-# 4. توليد مجلدات الأندرويد تلقائياً إذا كنت قد رفعت مجلد lib فقط دون المساس بملفاتك
-- name: Prepare Android Platform & Fix Minor Typos
-run: |
-mkdir -p /tmp/al_euro_backup
-cp -r lib /tmp/al_euro_backup/
-cp pubspec.yaml /tmp/al_euro_backup/
-if [ -d "assets" ]; then cp -r assets /tmp/al_euro_backup/; fi
-# إنشاء ملفات نظام الأندرويد الناقصة
-flutter create . --project-name al_euro_app --org com.aleuro.autoparts --platforms=android
-# استرجاع كود تطبيق اليورو الأصلي الخاص بك
-cp -r /tmp/al_euro_backup/lib/* lib/
-cp /tmp/al_euro_backup/pubspec.yaml pubspec.yaml
-if [ -d "/tmp/al_euro_backup/assets" ]; then
-mkdir -p assets/lang
-cp -r /tmp/al_euro_backup/assets/* assets/
-fi
-# تصحيح تلقائي لأي أحرف كبيرة في الأيقونات أو الـ import لضمان عدم حدوث خطأ أثناء البناء
-find lib -type f -name ".dart" -exec sed -i 's/Import /import /g' {} +
-find lib -type f -name ".dart" -exec sed -i 's/Icons.LinearScale/Icons.linear_scale/g' {} +
-find lib -type f -name "*.dart" -exec sed -i 's/Icons.Build_circle_outlined/Icons.build_circle_outlined/g' {} +
-# 5. تحميل الحزم والمكتبات المعرفة في pubspec.yaml
-- name: Install Flutter Dependencies
-run: flutter pub get
-# 6. بناء وتوليد ملف الـ APK النهائي
-- name: Build Release APK
-run: flutter build apk --release --no-tree-shake-icons
-# 7. رفع ملف الـ APK الجاهز لكي تتمكن من تحميله بضغطة زر من صفحة Actions
-- name: Upload APK Artifact
-uses: actions/upload-artifact@v4
-with:
-name: Al-Euro-Release-APK
-path: build/app/outputs/flutter-apk/app-release.apk
-if-no-files-found: error
+  build_apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Prepare Android Project Files
+        run: |
+          mkdir -p /tmp/backup/lib /tmp/backup/assets
+          cp -r lib/* /tmp/backup/lib/
+          cp -r assets/* /tmp/backup/assets/ || true
+          cp pubspec.yaml /tmp/backup/pubspec.yaml
+          flutter create --platforms=android --project-name al_euro_app .
+          cp -r /tmp/backup/lib/* lib/
+          mkdir -p assets/lang
+          cp -r /tmp/backup/assets/* assets/ || true
+          cp /tmp/backup/pubspec.yaml pubspec.yaml
+          find lib -type f -name "*.dart" -exec sed -i 's/^Import /import /g' {} +
+          find lib -type f -name "*.dart" -exec sed -i 's/Icons\.LinearScale/Icons.linear_scale/g' {} +
+          find lib -type f -name "*.dart" -exec sed -i 's/Icons\.Build_circle_outlined/Icons.build_circle_outlined/g' {} +
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Build Release APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Al-Euro-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
